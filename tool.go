@@ -4,23 +4,22 @@ import (
 	"bytes"
 	"crypto/aes"
 	"crypto/cipher"
+	crand "crypto/rand"
+	"crypto/sha1"
 	"crypto/tls"
+	"encoding/base64"
 	"encoding/binary"
 	"encoding/json"
 	"encoding/xml"
-	"github.com/gin-gonic/gin"
-	"github.com/mitchellh/mapstructure"
-	"io/ioutil"
-	"net/http"
-	"strconv"
-	 crand "crypto/rand"
-	"math/rand"
-	"crypto/sha1"
-	"encoding/base64"
 	"errors"
 	"fmt"
+	"github.com/gin-gonic/gin"
 	"io"
+	"io/ioutil"
+	"math/rand"
+	"net/http"
 	"sort"
+	"strconv"
 	"strings"
 	"time"
 )
@@ -113,7 +112,7 @@ func SignMsg(token, timestamp, nonce string, encrypt ...string) string {
 
 }
 
-func Get(url string) map[string]interface{} {
+func Get(url string) JsonResponse {
 	client := http.Client{}
 	client.Transport = &http.Transport{
 		TLSClientConfig: &tls.Config{
@@ -121,14 +120,11 @@ func Get(url string) map[string]interface{} {
 		},
 	}
 	resp,err := client.Get(url)
-	var re map[string]interface{}
-	if err !=nil{
-		fmt.Println(err,url)
-		return map[string]interface{}{}
-	}
-	json.NewDecoder(resp.Body).Decode(&re)
+	respdata,_:=ioutil.ReadAll(resp.Body)
+	var dic map[string]interface{}
+	json.Unmarshal(respdata,&dic)
 
-	return re
+	return JsonResponse{respdata,err,dic}
 }
 
 
@@ -233,26 +229,22 @@ func decryptReqmsg(Encrypt,Aeskey string)(ReqMsg,error)  {
 
 /**公众号用户管理*/
 //获取用户信息列表
-func getuserlist(access_token string,respomsehandler func(resp UserListResp),nestopenid ...string)  {
+func getuserlist(access_token string,respomsehandler func(resp JsonResponse),nestopenid ...string)  {
 	url :="https://api.weixin.qq.com/cgi-bin/user/get?access_token="+access_token
 
 	if len(nestopenid)>0 {
 		url=url+"&next_openid="+nestopenid[0]
 	}
-	var result UserListResp
-
-	mapstructure.Decode(Get(url),&result)
-	respomsehandler(result)
+	respomsehandler(Get(url))
 }
 //获取用户信息
-func getuserInfo(access_token,openid string,respomsehandler ...func(resp UserResp))  {
+func getuserInfo(access_token,openid string,respomsehandler ...func(resp JsonResponse))  {
 	url :="https://api.weixin.qq.com/cgi-bin/user/info?access_token="
 	url =url +access_token+"&openid="+openid+"&lang=zh_CN"
-	var result UserResp
 	req :=Get(url)
-	mapstructure.Decode(req,&result)
+
 	if len(respomsehandler)>0 {
-		respomsehandler[0](result)
+		respomsehandler[0](req)
 	}
 }
 

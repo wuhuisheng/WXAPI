@@ -171,7 +171,7 @@ func (wx *WXKFManager) HandleCompentAuthEventPush(context * gin.Context,response
 /****************代公众号实现业务*******************/
 //1.代公众号调用接口
 //获取用户信息
-func (wx *WXKFManager)GetUserInfo( authorizer_access_token,authorizer_appid string ,hanlder ...func(user UserResp) ){
+func (wx *WXKFManager)GetUserInfo( authorizer_access_token,authorizer_appid string ,hanlder ...func(user JsonResponse) ){
 
 	if len(hanlder)>0 {
 		getuserInfo(authorizer_access_token,authorizer_appid,hanlder[0])
@@ -180,7 +180,7 @@ func (wx *WXKFManager)GetUserInfo( authorizer_access_token,authorizer_appid stri
 	}
 }
 //获取用户列表
-func (wx *WXKFManager)GetUserList( authorizer_access_token string,hanlder func(user UserListResp),nestopid ...string ){
+func (wx *WXKFManager)GetUserList( authorizer_access_token string,hanlder func(user JsonResponse),nestopid ...string ){
 
 	if len(nestopid)>0 {
 		getuserlist(authorizer_access_token,hanlder,nestopid[0] )
@@ -227,14 +227,14 @@ func (wx *WXKFManager) GetAppAuthurl(appid,scope,redirect_uri,state string) stri
 	return url
 }
 //网页授权后回调
-func (wx *WXKFManager) HanledAppAuth(context * gin.Context,completeHandler func(resp AuthResp,authuser AuthuserResp,state string)(redicturl string))  {
+func (wx *WXKFManager) HanledAppAuth(context * gin.Context,completeHandler func(resp AuthResp,authuser JsonResponse,state string)(redicturl string))  {
 
 	code := context.Query("code")
 	appid := context.Query("appid")
 	state := context.Query("state")
 	fmt.Println(code,appid,"接收到的微信信息时")
 	wx.getAppAuthUserAccesstoken(code,appid, func(authresp AuthResp) {
-		wx.getAppAuthuserInfo(authresp, func(authuser AuthuserResp) {
+		wx.getAppAuthuserInfo(authresp, func(authuser JsonResponse) {
 			redicturl:=completeHandler(authresp,authuser,state)
 			context.Redirect(http.StatusMovedPermanently,redicturl)
 		})
@@ -285,8 +285,6 @@ func (wx *WXKFManager) getCompentAuthAccesstoken(authorization_code string,handl
 			handler[0](result)
 		}
 	})
-
-
 }
 
 //4.（刷新）授权公众号或小程序的接口调用凭据
@@ -321,15 +319,13 @@ func (wx *WXKFManager) getAppAuthUserAccesstoken(code ,appid string,handler ...f
 }
 
 //代公众号获取网页登录用户信息
-func (wx *WXKFManager) getAppAuthuserInfo(auth AuthResp,handler ...func(authuser AuthuserResp))  {
+func (wx *WXKFManager) getAppAuthuserInfo(auth AuthResp,handler ...func(authuser JsonResponse))  {
 	url :="https://api.weixin.qq.com/sns/userinfo?access_token="
 	url =url +auth.Access_token+"&openid="+auth.Openid+"&lang=zh_CN"
 	resp := Get(url)
-	var result AuthuserResp
-	mapstructure.Decode(resp,&result)
-	fmt.Println("代公众号获取网页用户信息",resp,result)
+	fmt.Println("代公众号获取网页用户信息",resp.Dic)
 	if len(handler)>0 {
-		handler[0](result)
+		handler[0](resp)
 	}
 }
 

@@ -1,7 +1,6 @@
 package wxapi
 
 import (
-	"encoding/json"
 	"fmt"
 	"github.com/gin-gonic/gin"
 	"github.com/mitchellh/mapstructure"
@@ -25,15 +24,15 @@ type WXmanager interface {
 	CreatMenu(param gin.H,responsehanler func(resp BaseResp))
 	QuerytMenu(responsehanler func(resp BaseResp))
     //用户管理
-	GetuserInfo(openid string,respomsehandler func(resp UserResp))//用户详细信息
-	GetUserlist(respomsehandler func(resp UserListResp),nestopenid ...string)//用户列表
+	GetuserInfo(openid string,respomsehandler func(resp JsonResponse))//用户详细信息
+	GetUserlist(respomsehandler func(resp JsonResponse),nestopenid ...string)//用户列表
 	//账号管理  带参数二维码生成
 
 	//微信服务器IP列表
-	GetWXIPlist( respomsehandler func(iplist IpResp))
+	GetWXIPlist( respomsehandler func(iplist JsonResponse))
 	//素材管理
-	CreatNews(param gin.H)UPloadMaterialResp
-	CreatMaterial(param gin.H,typ string)UPloadMaterialResp
+	CreatNews(param gin.H)JsonResponse
+	CreatMaterial(param gin.H,typ string)JsonResponse
 	QuerymaterialList(param gin.H)QueryMaterialistlResp
 
 }
@@ -124,15 +123,16 @@ func (wx *WXManager)GetAuthMenuurl(redirect_uri,scope,state string)string  {
 
 //code 用户同意授权后，页面将跳转至 redirect_uri/?code=CODE&state=STATE 微信发来的
 //通过code换取网页授权access_token
-func (wx *WXManager) GetAuthAccesstoken(authorization_code string,hander ...func(AuthResp))  {
+func (wx *WXManager) GetAuthAccesstoken(authorization_code string,hander ...func(response AuthResp))  {
 	usr := "https://api.weixin.qq.com/sns/oauth2/access_token?appid="
 	usr =usr+wx.Appid+"&secret="+wx.Appsecret+"&code="+authorization_code+"&grant_type=authorization_code"
 	fmt.Println("获取用户授权accesstoken",usr)
 	resp := Get(usr)
-	var result AuthResp
-	mapstructure.Decode(resp,&result)
+
+	var respauth AuthResp
+	mapstructure.Decode(resp.Dic,&respauth)
 	if len(hander)>0 {
-		hander[0](result)
+		hander[0](respauth)
 	}
 }
 //刷新token
@@ -142,20 +142,20 @@ func (wx *WXManager) RefreshAuthAccesstoken(refresh string,hander ...func(AuthRe
 	usr =usr+"&grant_type=refresh_token&refresh_token="+refresh
 	resp := Get(usr)
 	var respauth AuthResp
-	mapstructure.Decode(resp,&respauth)
+	mapstructure.Decode(resp.Dic,&respauth)
 	if len(hander)>0 {
 		hander[0](respauth)
 	}
 }
 func (wx *WXManager) CheckAuthAcesstoken(access_token,openid string)  {
 	resp:=Get("https://api.weixin.qq.com/sns/auth?access_token="+access_token+"&openid="+openid)
-	fmt.Println(resp)
+	fmt.Println(resp.Dic)
 }
 
-func (wx *WXManager)GetAuthuserInfoBycode(authorization_code string,hander ...func(AuthuserResp))  {
+func (wx *WXManager)GetAuthuserInfoBycode(authorization_code string,hander ...func(response JsonResponse))  {
 	
 	wx.GetAuthAccesstoken(authorization_code, func(resp AuthResp) {
-		wx.GetAuthuserInfo(resp.Access_token,resp.Openid, func(resp AuthuserResp) {
+		wx.GetAuthuserInfo(resp.Access_token,resp.Openid, func(resp JsonResponse) {
 			if len(hander)>0 {
 				hander[0](resp)
 			}
@@ -166,21 +166,18 @@ func (wx *WXManager)GetAuthuserInfoBycode(authorization_code string,hander ...fu
 
 //传入参数为上边参数返回值
 //网页授权拉取用户信息
-func (wx *WXManager)GetAuthuserInfo(access_token ,openid string,hander ...func(AuthuserResp))  {
+func (wx *WXManager)GetAuthuserInfo(access_token ,openid string,hander ...func(response JsonResponse))  {
 	url :="https://api.weixin.qq.com/sns/userinfo?access_token="
 	url =url +access_token+"&openid="+openid+"&lang=zh_CN"
 
-	var result AuthuserResp
 	req :=Get(url)
-	fmt.Println("用户授权后原始信息",req)
-	mapstructure.Decode(req,&result)
 	if len(hander)>0 {
-		hander[0](result)
+		hander[0](req)
 	}
 }
 //用户管理
 //获取用户信息
-func (wx *WXManager)GetuserInfo(openid string,respomsehandler ...func(resp UserResp))  {
+func (wx *WXManager)GetuserInfo(openid string,respomsehandler ...func(resp JsonResponse))  {
 	if len(respomsehandler)>0 {
 		getuserInfo(wx.Accesstoken,openid,respomsehandler[0])
 	}else {
@@ -189,7 +186,7 @@ func (wx *WXManager)GetuserInfo(openid string,respomsehandler ...func(resp UserR
 
 }
 //获取用户列表
-func (wx *WXManager)GetUserlist(respomsehandler func(resp UserListResp),nestopenid ...string)  {
+func (wx *WXManager)GetUserlist(respomsehandler func(resp JsonResponse),nestopenid ...string)  {
 	if len(nestopenid)>0 {
 		getuserlist(wx.Accesstoken,respomsehandler,nestopenid[0])
 	}else {
@@ -206,55 +203,45 @@ func (wx *WXManager)GetUserlist(respomsehandler func(resp UserListResp),nestopen
 
 //菜单管理
 //创建自定义菜单
-func (wx *WXManager)CreatMenu(param gin.H,responsehanler func(resp BaseResp)) {
+func (wx *WXManager)CreatMenu(param gin.H,responsehanler func(response JsonResponse)) {
 	POSTJson(" https://api.weixin.qq.com/cgi-bin/menu/create?access_token="+wx.Accesstoken, param, func(response JsonResponse) {
-		var result BaseResp
-		json.Unmarshal(response.Data,&result)
-		result.JsonResponse =&response
-		responsehanler(result)
+		responsehanler(response)
 	})
 
 
 }
 //自定义菜单查询
-func (wx *WXManager)QuerytMenu(responsehanler func(resp BaseResp)) {
+func (wx *WXManager)QuerytMenu(responsehanler func(resp JsonResponse)) {
 	resp  := Get(" https://api.weixin.qq.com/cgi-bin/menu/create?access_token="+wx.Accesstoken)
-	var result BaseResp
-	mapstructure.Decode(resp,&result)
-	responsehanler(result)
+	responsehanler(resp)
 }
 //创建个性化菜单
 
 
 //获取微信服务器IP地址
 
-func (wx *WXManager)GetWXIPlist( respomsehandler func(iplist IpResp))  {
+func (wx *WXManager)GetWXIPlist( respomsehandler func(iplist JsonResponse))  {
 
 	resp :=Get("https://api.weixin.qq.com/cgi-bin/getcallbackip?access_token="+wx.Accesstoken)
-	var result IpResp
-	mapstructure.Decode(resp,&result)
-	respomsehandler(result)
+
+	respomsehandler(resp)
 }
 
 //素材管理
 //添加图文素材
-func (wx *WXManager)CreatNews(param gin.H, respomsehandler func(resp UPloadMaterialResp))  {
+func (wx *WXManager)CreatNews(param gin.H, respomsehandler func(response JsonResponse))  {
 
 	POSTJson("https://api.weixin.qq.com/cgi-bin/material/add_news?access_token="+wx.Accesstoken,param, func(response JsonResponse) {
-		var result UPloadMaterialResp
-		json.Unmarshal(response.Data,&result)
-		result.JsonResponse =&response
-		respomsehandler(result)
+
+		respomsehandler(response)
 	})
 
 }
 //添加其他素材
-func (wx *WXManager)CreatMaterial(param gin.H,typ string,respomsehandler func(resp UPloadMaterialResp))  {
+func (wx *WXManager)CreatMaterial(param gin.H,typ string,respomsehandler func(response JsonResponse))  {
 	POSTJson("https://api.weixin.qq.com/cgi-bin/material/add_material?access_token="+wx.Accesstoken+"&type="+typ,param, func(response JsonResponse) {
-		var result UPloadMaterialResp
-		json.Unmarshal(response.Data,&result)
-		result.JsonResponse =&response
-		respomsehandler(result)
+
+		respomsehandler(response)
 	})
 
 }
@@ -290,7 +277,7 @@ func (wx *WXManager)getAceeesToken()  {
 	url :="https://api.weixin.qq.com/cgi-bin/token?grant_type=client_credential&appid="
 	url = url + wx.Appid+"&secret="+wx.Appsecret
 	rep:=Get(url)
-	wx.Accesstoken =fmt.Sprint(rep["access_token"])
+	wx.Accesstoken =fmt.Sprint(rep.Dic["access_token"])
 	fmt.Println(rep)
 
 }
