@@ -278,8 +278,6 @@ func (wx *WXManager)getAceeesToken()  {
 	url = url + wx.Appid+"&secret="+wx.Appsecret
 	rep:=Get(url)
 	wx.Accesstoken =fmt.Sprint(rep.Dic["access_token"])
-	fmt.Println(rep)
-
 }
 
 //获取创建临时二维码ticket
