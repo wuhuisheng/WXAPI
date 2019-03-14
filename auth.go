@@ -11,6 +11,7 @@ type AuthResp struct {
 type BaseResp struct {
 	Errcode string
 	Errmsg  string
+	*JsonResponse
 }
 //网页授权返回用户结构体
 type AuthuserResp struct {
@@ -28,7 +29,7 @@ type AuthuserResp struct {
 //公众号获取用户基本信息
 type UserResp struct {
 	*BaseResp
-	Subscribe	string//用户是否订阅该公众号标识，值为0时，代表此用户没有关注该公众号，拉取不到其余信息。
+	Subscribe	int//用户是否订阅该公众号标识，值为0时，代表此用户没有关注该公众号，拉取不到其余信息。
 	Openid	string//用户的标识，对当前公众号唯一
 	Nickname	string//用户的昵称
 	Sex	int//用户的性别，值为1时是男性，值为2时是女性，值为0时是未知
@@ -50,8 +51,8 @@ type UserResp struct {
 type UserListResp struct {
 
 
-	Total	string//关注该公众账号的总用户数
-	Count	string// 拉取的OPENID个数，最大值为10000
+	Total	int//关注该公众账号的总用户数
+	Count	int// 拉取的OPENID个数，最大值为10000
 	Data	struct{
 		Openid  []string
 	}   // 列表数据，OPENID的列表
@@ -91,8 +92,8 @@ type TicketReso struct {
 }
 
 type QueryMaterialistlResp struct {
-	Total_count   string
-	Item_count    string
+	Total_count   int
+	Item_count    int
 	Item []Materia
 	*BaseResp
 }

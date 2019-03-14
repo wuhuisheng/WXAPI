@@ -10,6 +10,7 @@ import (
 	"encoding/xml"
 	"github.com/gin-gonic/gin"
 	"github.com/mitchellh/mapstructure"
+	"io/ioutil"
 	"net/http"
 	"strconv"
 	 crand "crypto/rand"
@@ -134,24 +135,37 @@ func Get(url string) map[string]interface{} {
 
 
 //发送post,数据json请求
-func POST(url string,params map[string]interface{},completHandler ...func(response *http.Response,err error))(map[string]interface{}, error)  {
+func POSTJson(url string,params map[string]interface{},completHandler ...func(response JsonResponse))  {
 
+
+	ll,_:= json.Marshal(params)
+	Post(url,ll, func(response JsonResponse) {
+		if len(completHandler)>0 {
+			completHandler[0](response)
+		}
+	})
+
+}
+
+func Post(url string,data[]byte,completHandler func(response JsonResponse))  {
 	client := http.Client{}
 	client.Transport = &http.Transport{
 		TLSClientConfig: &tls.Config{
 			InsecureSkipVerify: true,
 		},
 	}
+	resp,err :=client.Post(url,"application/json",bytes.NewBuffer(data))
+	respdata,_:=ioutil.ReadAll(resp.Body)
+	var dic map[string]interface{}
+	json.Unmarshal(respdata,&dic)
+	completHandler(JsonResponse{respdata,err,dic})
 
-	ll,_:= json.Marshal(params)
-	resp,err :=client.Post(url,"application/json",bytes.NewBuffer(ll))
-	var re  map[string]interface{}
-	json.NewDecoder(resp.Body).Decode(&re)
-	if len(completHandler)>0 {
-		completHandler[0](resp,err)
-	}
+}
 
-	return re,err
+type JsonResponse struct {
+	 Data  []byte
+	 Err   error
+	 Dic   map[string]interface{}
 }
 
 
@@ -247,18 +261,23 @@ func getuserInfo(access_token,openid string,respomsehandler ...func(resp UserRes
 //获取第三方平台access_token 令牌
 func getcomponent_token(copentAppid,compentAppsecret,compentticket string) string {
 	param:=gin.H{"component_appid": copentAppid, "component_appsecret": compentAppsecret, "component_verify_ticket": compentticket}
-
-	resp,_ := POST("https://api.weixin.qq.com/cgi-bin/component/api_component_token",param)
-	return fmt.Sprint(resp["component_access_token"])
+     result := ""
+	 POSTJson("https://api.weixin.qq.com/cgi-bin/component/api_component_token",param, func(response JsonResponse) {
+		 result=fmt.Sprint(response.Dic["component_access_token"])
+	 })
+	return result
 }
 //获取第三方平台预授权码
 func getCompent_pre_authcode(token string,param map[string]interface{}) string {
 
 	url := "https://api.weixin.qq.com/cgi-bin/component/api_create_preauthcode?component_access_token="
 	url = url+token
-	resp,err :=POST(url,param)
-	fmt.Println("获取预授权的响应为",resp,err)
-	return fmt.Sprint(resp["pre_auth_code"])
+	result := ""
+	 POSTJson(url,param, func(response JsonResponse) {
+		 result=fmt.Sprint(response.Dic["pre_auth_code"])
+	 })
+
+	return result
 }
 //获取第三方平台移动端授权连接
 func getCompentAuthUrl(appid,pre_auth_code,redicturi string)string {

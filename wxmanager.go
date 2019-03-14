@@ -1,6 +1,7 @@
 package wxapi
 
 import (
+	"encoding/json"
 	"fmt"
 	"github.com/gin-gonic/gin"
 	"github.com/mitchellh/mapstructure"
@@ -206,10 +207,14 @@ func (wx *WXManager)GetUserlist(respomsehandler func(resp UserListResp),nestopen
 //菜单管理
 //创建自定义菜单
 func (wx *WXManager)CreatMenu(param gin.H,responsehanler func(resp BaseResp)) {
-	resp, _ := POST(" https://api.weixin.qq.com/cgi-bin/menu/create?access_token="+wx.Accesstoken, param)
-	var result BaseResp
-	mapstructure.Decode(resp,&result)
-	responsehanler(result)
+	POSTJson(" https://api.weixin.qq.com/cgi-bin/menu/create?access_token="+wx.Accesstoken, param, func(response JsonResponse) {
+		var result BaseResp
+		json.Unmarshal(response.Data,&result)
+		result.JsonResponse =&response
+		responsehanler(result)
+	})
+
+
 }
 //自定义菜单查询
 func (wx *WXManager)QuerytMenu(responsehanler func(resp BaseResp)) {
@@ -235,29 +240,32 @@ func (wx *WXManager)GetWXIPlist( respomsehandler func(iplist IpResp))  {
 //添加图文素材
 func (wx *WXManager)CreatNews(param gin.H, respomsehandler func(resp UPloadMaterialResp))  {
 
-	resp,_:= POST("https://api.weixin.qq.com/cgi-bin/material/add_news?access_token="+wx.Accesstoken,param)
+	POSTJson("https://api.weixin.qq.com/cgi-bin/material/add_news?access_token="+wx.Accesstoken,param, func(response JsonResponse) {
+		var result UPloadMaterialResp
+		json.Unmarshal(response.Data,&result)
+		result.JsonResponse =&response
+		respomsehandler(result)
+	})
 
-	var result UPloadMaterialResp
-	mapstructure.Decode(resp,&result)
-	respomsehandler(result)
 }
 //添加其他素材
 func (wx *WXManager)CreatMaterial(param gin.H,typ string,respomsehandler func(resp UPloadMaterialResp))  {
-	resp,_:= POST("https://api.weixin.qq.com/cgi-bin/material/add_material?access_token="+wx.Accesstoken+"&type="+typ,param)
+	POSTJson("https://api.weixin.qq.com/cgi-bin/material/add_material?access_token="+wx.Accesstoken+"&type="+typ,param, func(response JsonResponse) {
+		var result UPloadMaterialResp
+		json.Unmarshal(response.Data,&result)
+		result.JsonResponse =&response
+		respomsehandler(result)
+	})
 
-	var result UPloadMaterialResp
-	mapstructure.Decode(resp,&result)
-	respomsehandler(result)
 }
 
 //查询素材列表
 
-func (wx *WXManager)QuerymaterialList(param gin.H,respomsehandler func(resp QueryMaterialistlResp))  {
+func (wx *WXManager)QuerymaterialList(param gin.H,respomsehandler func(resopne JsonResponse))  {
     url :="https://api.weixin.qq.com/cgi-bin/material/batchget_material?access_token="+wx.Accesstoken
-    resp,_ := POST(url,param)
-	var result QueryMaterialistlResp
-	mapstructure.Decode(resp,&result)
-	respomsehandler(result)
+   POSTJson(url,param, func(response JsonResponse) {
+	   respomsehandler(response)
+   })
 }
 
 
@@ -294,8 +302,8 @@ func getTempticket(access_token ,expire_seconds,action_name,scene_str string)  {
 	url :="https://api.weixin.qq.com/cgi-bin/qrcode/create?access_token="
 	url =url +access_token
 
-	res,_:= POST(url,gin.H{"expire_seconds":expire_seconds,"action_name":action_name,"action_info":gin.H{"scene":gin.H{"scene_str":scene_str}}})
+	POSTJson(url,gin.H{"expire_seconds": expire_seconds,"action_name":action_name,"action_info":gin.H{"scene": gin.H{"scene_str": scene_str}}}, func(response JsonResponse) {
 
-	fmt.Println(res["url"])
+	})
 
 }

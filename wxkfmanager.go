@@ -102,12 +102,15 @@ func (wx *WXKFManager) HanleCompentAuth(context * gin.Context, responsehandler f
 func (wx *WXKFManager) GetCompentAuthorizerInfo(authorizer_appid string,response ...func(resp APPUserInfoResp)) {
 	url :="https://api.weixin.qq.com/cgi-bin/component/api_query_auth?component_access_token="
 	url =url +wx.Component_access_token
-	resp,_:= POST(url,gin.H{"component_appid":wx.CompentAppid,"authorizer_appid":authorizer_appid})
-	var result APPUserInfoResp
-	mapstructure.Decode(resp,&result)
-	if len(response)>0 {
-		response[0](result)
-	}
+	POSTJson(url,gin.H{"component_appid": wx.CompentAppid,"authorizer_appid":authorizer_appid}, func(resp JsonResponse) {
+		var result APPUserInfoResp
+		mapstructure.Decode(resp.Dic,&result)
+		result.JsonResponse=&resp
+		if len(response)>0 {
+			response[0](result)
+		}
+	})
+
 }
 
 //获取授权方选项设置信息
@@ -116,13 +119,16 @@ func (wx *WXKFManager) GetCompentAuthOptionInfo(authorizer_appid,option_name str
 
 	url :="https://api.weixin.qq.com/cgi-bin/component/api_query_auth?component_access_token="
 	url =url +wx.Component_access_token
-	resp,_:= POST(url,gin.H{"component_appid":wx.CompentAppid,"authorizer_appid":authorizer_appid,"option_name":option_name})
+	 POSTJson(url,gin.H{"component_appid": wx.CompentAppid,"authorizer_appid":authorizer_appid,"option_name":option_name}, func(resp JsonResponse) {
+		 var result APPOptionResp
+		 mapstructure.Decode(resp.Dic,&result)
+		 result.JsonResponse=&resp
+		 if len(responsehandler)>0 {
+			 responsehandler[0](result)
+		 }
+	 })
 
-	var result APPOptionResp
-	mapstructure.Decode(resp,&result)
-	if len(responsehandler)>0 {
-		responsehandler[0](result)
-	}
+
 
 }
 //设置授权方选项信息
@@ -130,13 +136,16 @@ func (wx *WXKFManager) GetCompentAuthOptionInfo(authorizer_appid,option_name str
 func (wx *WXKFManager) SetCompentAuthOption(authorizer_appid,option_name,option_value string,responsehandler ...func(BaseResp))  {
 	url :="https://api.weixin.qq.com/cgi-bin/component/api_query_auth?component_access_token="
 	url =url +wx.Component_access_token
-	resp,_:= POST(url,gin.H{"component_appid":wx.CompentAppid,"authorizer_appid":authorizer_appid,"option_name":option_name,
-		"option_value":option_value})
-	var result BaseResp
-	mapstructure.Decode(resp,&result)
-	if len(responsehandler)>0 {
-		responsehandler[0](result)
-	}
+	POSTJson(url,gin.H{"component_appid": wx.CompentAppid,"authorizer_appid":authorizer_appid,"option_name":option_name,
+		"option_value":option_value}, func(resp JsonResponse) {
+		var result BaseResp
+		mapstructure.Decode(resp.Dic,&result)
+		result.JsonResponse=&resp
+		if len(responsehandler)>0 {
+			responsehandler[0](result)
+		}
+	})
+
 }
 
 //授权通知处理
@@ -268,25 +277,31 @@ func (wx *WXKFManager) getCompentAuthAccesstoken(authorization_code string,handl
 
 	url :="https://api.weixin.qq.com/cgi-bin/component/api_query_auth?component_access_token="
 	url =url +wx.Component_access_token
-	resp,_:= POST(url,gin.H{"component_appid":wx.CompentAppid,"authorization_code":authorization_code})
-	fmt.Println("授权原始信息为",resp)
-	var result APPAuthInfoResp
-	mapstructure.Decode(resp,&result)
-	if len(handler)>0 {
-		handler[0](result)
-	}
+	POSTJson(url,gin.H{"component_appid": wx.CompentAppid,"authorization_code":authorization_code}, func(response JsonResponse) {
+		var result APPAuthInfoResp
+		mapstructure.Decode(response.Dic,&result)
+		result.JsonResponse=&response
+		if len(handler)>0 {
+			handler[0](result)
+		}
+	})
+
+
 }
 
 //4.（刷新）授权公众号或小程序的接口调用凭据
 func (wx *WXKFManager) RefreshCompentAuthAccessToken(authorizer_appid,authorizer_refresh_token string,response ...func(APPAuthInfo APPAuthInfoResp))  {
 	url :="https://api.weixin.qq.com/cgi-bin/component/api_query_auth?component_access_token="
 	url =url +wx.Component_access_token
-	resp,_:= POST(url,gin.H{"component_appid":wx.CompentAppid,"authorizer_appid":authorizer_appid,"authorizer_refresh_token":authorizer_refresh_token})
-	var result APPAuthInfoResp
-	mapstructure.Decode(resp,&result)
-	if len(response)>0 {
-		response[0](result)
-	}
+	POSTJson(url,gin.H{"component_appid": wx.CompentAppid,"authorizer_appid":authorizer_appid,"authorizer_refresh_token":authorizer_refresh_token}, func(res JsonResponse) {
+		var result APPAuthInfoResp
+		mapstructure.Decode(res.Dic,&result)
+		result.JsonResponse=&res
+		if len(response)>0 {
+			response[0](result)
+		}
+	})
+
 }
 
 /*代公众号实现业务使用*/

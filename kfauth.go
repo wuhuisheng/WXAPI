@@ -48,16 +48,19 @@ type APPAuthMsg struct {
 type APPAuthtokenResp struct {
 	component_access_token	string //第三方平台access_token
 	expires_in	string //有效期
+	*BaseResp
 }
 
 type APPPreResp struct {
 	pre_auth_code	string //预授权码
 	expires_in	string //有效期
+	*BaseResp
 }
 
 type APPOptionResp struct {
 	authorizer_appid	string //授权公众号或小程序的appid
 	option_name	  string //选项名称
 	option_value	string //选项值
+	*BaseResp
 }
 
