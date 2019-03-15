@@ -60,3 +60,9 @@ type  Materia struct {
 type ArticleReq struct {
 
 }
+
+// JSSDKSignature JSSDK 签名对象
+type JSSDKSignature struct {
+	AppID, Noncestr, Sign string
+	Timestamp             int64
+}

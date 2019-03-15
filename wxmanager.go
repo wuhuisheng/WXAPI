@@ -1,12 +1,15 @@
 package wxapi
 
 import (
+	"crypto/sha1"
+	"encoding/hex"
 	"fmt"
 	"github.com/gin-gonic/gin"
 	"github.com/mitchellh/mapstructure"
 	"github.com/robfig/cron"
 	"net/http"
 	"net/url"
+	"time"
 )
 
 type WXmanager interface {
@@ -128,7 +131,6 @@ func (wx *WXManager) GetAuthAccesstoken(authorization_code string,hander ...func
 	usr =usr+wx.Appid+"&secret="+wx.Appsecret+"&code="+authorization_code+"&grant_type=authorization_code"
 	fmt.Println("获取用户授权accesstoken",usr)
 	resp := Get(usr)
-
 	var respauth AuthResp
 	mapstructure.Decode(resp.Dic,&respauth)
 	if len(hander)>0 {
@@ -277,6 +279,7 @@ func (wx *WXManager)getAceeesToken()  {
 	url :="https://api.weixin.qq.com/cgi-bin/token?grant_type=client_credential&appid="
 	url = url + wx.Appid+"&secret="+wx.Appsecret
 	rep:=Get(url)
+	fmt.Println("当前的accesstoken",rep.Dic)
 	wx.Accesstoken =fmt.Sprint(rep.Dic["access_token"])
 }
 
@@ -290,5 +293,26 @@ func getTempticket(access_token ,expire_seconds,action_name,scene_str string)  {
 	POSTJson(url,gin.H{"expire_seconds": expire_seconds,"action_name":action_name,"action_info":gin.H{"scene": gin.H{"scene_str": scene_str}}}, func(response JsonResponse) {
 
 	})
+
+}
+
+func (wx *WXManager)GetJSapi_ticket() string {
+	url :="https://api.weixin.qq.com/cgi-bin/ticket/getticket?access_token="
+	url = url+wx.Accesstoken+"&type=jspai"
+	return fmt.Sprint(Get(url).Dic["ticket"])
+}
+
+func (wx *WXManager)SignJsapi(u *url.URL)JSSDKSignature  {
+	 jsticket := wx.GetJSapi_ticket()
+	 noncestr := RandAlnumStr(10)
+	 timestap := time.Now().Unix()
+	 uri := fmt.Sprintf("http://%s%s", u.Host, u.RequestURI())
+	 plainTxt := []byte(fmt.Sprintf("jsapi_ticket=%s&noncestr=%s&timestamp=%d&url=%s",
+		jsticket, noncestr, timestap, uri))
+	h := sha1.New()
+	h.Write(plainTxt)
+	b := h.Sum(nil)
+	sign := hex.EncodeToString(b)
+	return JSSDKSignature{wx.Appid,noncestr,sign,timestap}
 
 }
