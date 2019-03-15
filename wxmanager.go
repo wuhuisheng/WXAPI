@@ -304,11 +304,13 @@ func (wx *WXManager)GetJSapi_ticket() string {
 
 func (wx *WXManager)SignJsapi(u *url.URL)JSSDKSignature  {
 	 jsticket := wx.GetJSapi_ticket()
-	 noncestr := RandAlnumStr(10)
+	 noncestr := RandAlnumStr(16)
 	 timestap := time.Now().Unix()
 	 uri := fmt.Sprintf("http://%s%s", u.Host, u.RequestURI())
-	 plainTxt := []byte(fmt.Sprintf("jsapi_ticket=%s&noncestr=%s&timestamp=%d&url=%s",
-		jsticket, noncestr, timestap, uri))
+	 sortstr := fmt.Sprintf("jsapi_ticket=%s&noncestr=%s&timestamp=%d&url=%s",
+		 jsticket, noncestr, timestap, uri)
+	 fmt.Println(sortstr,"jsapi加密字符串是")
+	 plainTxt := []byte(sortstr)
 	h := sha1.New()
 	h.Write(plainTxt)
 	b := h.Sum(nil)
