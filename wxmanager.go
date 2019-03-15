@@ -47,6 +47,7 @@ type WXManager struct {
 	token          string
 	Accesstoken    string
 	EncodingAESKey string
+	Jsapiticket    string
 
 }
 //初始化微信公众平台管理器,返回引用类型，确保内外变化一致
@@ -58,10 +59,14 @@ func InitWXManager(appid,appseceret,token,EncodingAESKey string)*WXManager {
 	wx.Appsecret=appseceret
 	wx.EncodingAESKey=EncodingAESKey
     wx.getAceeesToken()
+	wx.getJSapi_ticket()
 	//每小时刷新一次token
 	c := cron.New()
 	spec := "0 0 */1 * *  ?"
-	err :=c.AddFunc(spec,wx.getAceeesToken)
+	err :=c.AddFunc(spec, func() {
+		wx.getAceeesToken()
+		wx.getJSapi_ticket()
+	})
 	c.Start()
     fmt.Println("初始化公众平台管理器定时任务",err,spec)
 	return &wx
@@ -296,19 +301,22 @@ func getTempticket(access_token ,expire_seconds,action_name,scene_str string)  {
 
 }
 
-func (wx *WXManager)GetJSapi_ticket() string {
+func (wx *WXManager)getJSapi_ticket() string {
 	url :="https://api.weixin.qq.com/cgi-bin/ticket/getticket?access_token="
-	url = url+wx.Accesstoken+"&type=jspai"
-	return fmt.Sprint(Get(url).Dic["ticket"])
+	url = url+wx.Accesstoken+"&type=jsapi"
+	fmt.Println(url,"请求jsapi")
+	resp := Get(url)
+	fmt.Println(string(resp.Data))
+	wx.Jsapiticket=fmt.Sprint(resp.Dic["ticket"])
+	return wx.Jsapiticket
 }
 
-func (wx *WXManager)SignJsapi(u *url.URL)JSSDKSignature  {
-	 jsticket := wx.GetJSapi_ticket()
+func (wx *WXManager)SignJsapi(urlstr string)JSSDKSignature  {
+	 jsticket := wx.Jsapiticket
 	 noncestr := RandAlnumStr(16)
 	 timestap := time.Now().Unix()
-	 uri := fmt.Sprintf("http://%s%s", u.Host, u.RequestURI())
 	 sortstr := fmt.Sprintf("jsapi_ticket=%s&noncestr=%s&timestamp=%d&url=%s",
-		 jsticket, noncestr, timestap, uri)
+		 jsticket, noncestr, timestap, urlstr)
 	 fmt.Println(sortstr,"jsapi加密字符串是")
 	 plainTxt := []byte(sortstr)
 	h := sha1.New()

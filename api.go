@@ -1,2 +1,3 @@
 package wxapi
 
+//const WXURL
