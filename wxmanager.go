@@ -289,14 +289,17 @@ func (wx *WXManager)getAceeesToken()  {
 }
 
 //获取创建临时二维码ticket
+func (wx *WXManager)GetQRticket(expire_seconds,action_name,scene_str string,Handler func(response JsonResponse) )  {
+	getQRicket(wx.Accesstoken,expire_seconds,action_name,scene_str,Handler)
 
-func getTempticket(access_token ,expire_seconds,action_name,scene_str string)  {
+}
+func getQRicket(access_token ,expire_seconds,action_name,scene_str string,Handler func(response JsonResponse))  {
 
 	url :="https://api.weixin.qq.com/cgi-bin/qrcode/create?access_token="
 	url =url +access_token
 
 	POSTJson(url,gin.H{"expire_seconds": expire_seconds,"action_name":action_name,"action_info":gin.H{"scene": gin.H{"scene_str": scene_str}}}, func(response JsonResponse) {
-
+           Handler(response)
 	})
 
 }
